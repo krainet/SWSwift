@@ -16,7 +16,92 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         // Override point for customization after application launch.
+        // Valor por defecto para último personaje seleccionado
+        let defaults = NSUserDefaults.standardUserDefaults()
+        let last: AnyObject? = defaults.objectForKey(LAST_SELECTED_CHARACTER)
+        
+        if let lastSelected: AnyObject = last {
+            
+        }else{
+            defaults.setObject([SECCION_IMPERIAL, 0], forKey: LAST_SELECTED_CHARACTER)
+            defaults.synchronize()
+        }
+        
+        self.window = UIWindow(frame: UIScreen.mainScreen().bounds)
+        
+        // Creamos un modelo
+        let universe: RADSwUniv = RADSwUniv()
+        
+        // Detectamos el tipo de pantalla
+        if UIDevice.currentDevice().userInterfaceIdiom == UIUserInterfaceIdiom.Pad{
+            // Tipo tableta
+            self.configureForPad(universe)
+        }else{
+            // Tipo telefono
+            self.configureForPhone(universe)
+        }
+        
+        // Override point for customization after application launch.
+        self.window!.backgroundColor = UIColor.whiteColor()
+        self.window!.makeKeyAndVisible()
         return true
+        
+    }
+    
+    func configureForPad(universe: RADSwUniv){
+        // Creamos los controladores
+        let uVC = RADUnivTableViewController(model: universe)
+        let charVC = RadCharViewController(model: self.lastSelectedCharacterInModel(universe))
+        
+        // Creamos los navigation
+        let uNav = UINavigationController(rootViewController: uVC)
+        let charNav = UINavigationController(rootViewController: charVC)
+        
+        // Creamos el combinador
+        let splitVC = UISplitViewController()
+        splitVC.viewControllers = [uNav, charNav]
+        
+        // Asignamos delegados
+        splitVC.delegate = charVC
+        uVC.delegate = charVC
+        
+        // Lo hago root
+        self.window?.rootViewController = splitVC
+    }
+    
+    func configureForPhone(universe: RADSwUniv){
+        // Creamos el controlador
+        let uVC = RADUnivTableViewController(model: universe)
+        
+        // Creamos el combinador
+        let uNav = UINavigationController(rootViewController: uVC)
+        
+        // Asignamos delegados
+        uVC.delegate = uVC
+        
+        // Lo hago root
+        self.window?.rootViewController = uNav
+    }
+    
+    func lastSelectedCharacterInModel(universe: RADSwUniv) -> RADSwChar?{
+        // Obtengo NSUserDefaults
+        let defaults = NSUserDefaults.standardUserDefaults()
+        
+        // Saco las coordenadas del ultimo personaje
+        if let coords: NSArray = defaults.objectForKey(LAST_SELECTED_CHARACTER) as? NSArray{
+            let section = coords.objectAtIndex(0).integerValue
+            let pos = coords.objectAtIndex(1).integerValue
+            
+            // Obtengo el personaje
+            var character: RADSwChar?
+            if section == SECCION_IMPERIAL{
+                character = universe.imperialAtIndex(pos)
+            }else{
+                character = universe.rebelAtIndex(pos)
+            }
+            return character
+        }
+        return RADSwChar(alias: nil, wikiURL: nil, soundData: nil, photo: nil)
     }
 
     func applicationWillResignActive(application: UIApplication) {
